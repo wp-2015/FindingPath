@@ -15,7 +15,7 @@ public class Example : MonoBehaviour
         for(int i = 0; i < count; i++)
         {
             var child = tfTileParent.GetChild(i);
-            Destroy(child);
+            Destroy(child.gameObject);
         }
 
         clickState = ClickState.None;
@@ -41,7 +41,8 @@ public class Example : MonoBehaviour
     Color colorNormal = Color.white;
     Color colorObstacle = Color.gray;
 
-    string szCol = "10", szRow = "10";
+    string szCol = "4", szRow = "4";
+    private int iCol, iRow;
 
     private void OnGUI()
     {
@@ -56,7 +57,9 @@ public class Example : MonoBehaviour
 
         if (GUILayout.Button("创建地图"))
         {
-            ShowTile(int.Parse(szCol),int.Parse(szRow));
+            iCol = int.Parse(szCol);
+            iRow = int.Parse(szRow);
+            ShowTile(iCol,iRow);
         }
         GUILayout.Space(6);
         if(GUILayout.Button("<color=red>选择起点</color>"))
@@ -76,6 +79,23 @@ public class Example : MonoBehaviour
         GUILayout.Space(6);
         if (GUILayout.Button("寻路"))
         {
+            if (null != goStart && null != goEnd)
+            {
+                GetColRowWithGOName(goStart, out int colS, out int rowS);
+                GetColRowWithGOName(goEnd, out int colE, out int rowE);
+                // var paths = FindingPathWithViewShow.Find(new Vector2(colS, rowS), new Vector2(colE, rowE), 
+                //     iCol, iRow, lMap);
+                var startV = new Vector2(colS, rowS);
+                var endV = new Vector2(colE, rowE);
+                var node = FindingPathCode.Find(startV, endV, iCol, iRow, lMap);
+                for (int i = 0; i < 100; i++)
+                {
+                    node = node.parentNode;
+                    if(node == null)
+                        return;
+                    SetTileColor((int)node.currentPos.x, (int)node.currentPos.y, ref colorEnd);
+                }
+            }
             
         }
     }
@@ -98,12 +118,18 @@ public class Example : MonoBehaviour
         }
     }
 
+    private void GetColRowWithGOName(GameObject go, out int col, out int row)
+    {
+        var name = go.name;
+        var lszName = name.Split('_');
+        col = int.Parse(lszName[0]);
+        row = int.Parse(lszName[1]);
+    }
+
     private void SetTile(GameObject goTile)
     {
-        var name = goTile.name;
-        var lszName = name.Split('_');
-        var col = int.Parse(lszName[0]);
-        var row = int.Parse(lszName[1]);
+        GetColRowWithGOName(goTile, out int col, out int row);
+        
         switch(clickState)
         {
             case ClickState.Start:
@@ -135,6 +161,13 @@ public class Example : MonoBehaviour
 
     private void SetTileColor(GameObject goTile, ref Color color)
     {
+        var meshRender = goTile.GetComponent<MeshRenderer>();
+        meshRender.material.color = color;
+    }
+
+    private void SetTileColor(int col, int row, ref Color color)
+    {
+        var goTile = tfTileParent.Find(col + "_" + row);
         var meshRender = goTile.GetComponent<MeshRenderer>();
         meshRender.material.color = color;
     }

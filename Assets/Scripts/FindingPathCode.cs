@@ -3,68 +3,45 @@ using UnityEngine;
 
 public class FindingPathCode
 {
-    public static int iCol;
-    public static int iRow;
-    public static int[,] lMap;
-    private static void SetMap(int col, int row, int[,] mapList)
-    {
-        iCol = col;
-        iRow = row;
-        lMap = mapList;
-    }
-
-    public static Vector2[] Find()
-    {
-        int col = 4;
-        int row = 4;
-        int[,] map = new int[col, row];
-        for(int i = 0; i < col; i++)
-        {
-            for(int j = 0; j < row; j++)
-            {
-                map[i, j] = 0;
-            }
-        }
-        Find(new Vector2(2, 2), new Vector2(0, 0), col, row, map);
-
-        List<Vector2> res = new List<Vector2>();
-        return res.ToArray();
-    }
-
     static readonly List<Vector2> lHadEnqueued = new List<Vector2>();
-    static readonly Queue<Vector2> queueCheck = new Queue<Vector2>();
-    public static List<Vector2> Find(Vector2 start, Vector2 end, int col, int row, int[,] mapList)
+    static readonly Queue<NodeInfo> queueCheck = new Queue<NodeInfo>();
+    private static List<NodeInfo> lNodeInfo = new List<NodeInfo>();
+    public static NodeInfo Find(Vector2 start, Vector2 end, int col, int row, int[,] mapList)
     {
-        List<Vector2> res = new List<Vector2>();
-
         lHadEnqueued.Clear();
         queueCheck.Clear();
+        lNodeInfo.Clear();
+        var startNode = new NodeInfo() {currentPos = start, parentNode = null};
         if (start == end)
         {
-            res.Add(start);res.Add(end);return res;
+            return new NodeInfo() {currentPos = end, parentNode = startNode};
         }
+        
         //尾部压入队列
-        queueCheck.Enqueue(start);
+        queueCheck.Enqueue(startNode);
         lHadEnqueued.Add(start);
+        lNodeInfo.Add(startNode);
         while (queueCheck.Count > 0)
         {
             var currentNode = queueCheck.Dequeue();
-            Debug.LogError(currentNode);
-            if(currentNode != end)
+            if(currentNode.currentPos != end)
             {
-                var childNodes = FindingNodeChildren(currentNode, col, row, mapList, lHadEnqueued);
+                lNodeInfo.Remove(currentNode);
+                var childNodes = FindingNodeChildren(currentNode.currentPos, col, row, mapList, lHadEnqueued);
                 foreach(var node in childNodes)
                 {
                     lHadEnqueued.Add(node);
-                    queueCheck.Enqueue(node);
+                    var childNode = new NodeInfo() {currentPos = node, parentNode = currentNode};
+                    queueCheck.Enqueue(childNode);
+                    lNodeInfo.Add(childNode);
                 }
             }
             else
             {
-                break;
+                return currentNode;
             }
         }
-        return res;
+        return null;
     }
 
     /// <summary>
@@ -141,5 +118,11 @@ public class FindingPathCode
         if (x < col && mapList[x, y] == 0 && !hadCheckNode.Contains(new Vector2(x, y)))
             return true;
         return false;
+    }
+
+    public class NodeInfo
+    {
+        public NodeInfo parentNode;
+        public Vector2 currentPos;
     }
 }
