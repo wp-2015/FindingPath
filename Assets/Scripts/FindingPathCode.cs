@@ -68,18 +68,57 @@ public class FindingPathCode
         if (bLeftViable)
             res.Add(new Vector2(x - 1, y));
         if (bUpViable && bLeftViable)
-            res.Add(new Vector2(x - 1, y - 1));
+        {
+            var ix = x - 1;
+            var iy = y - 1;
+            var tp = new Vector2(ix, iy);
+            if (IsPosViable(ref tp, mapList, hadCheckNode))
+            {
+                res.Add(new Vector2(ix, iy));
+            }
+        }
         if (bDownViable)
             res.Add(new Vector2(x, y + 1));
         if (bLeftViable && bDownViable)
-            res.Add(new Vector2(x - 1, y + 1));
+        {
+            var ix = x - 1;
+            var iy = y + 1;
+            var tp = new Vector2(ix, iy);
+            if (IsPosViable(ref tp, mapList, hadCheckNode))
+            {
+                res.Add(new Vector2(ix, iy));
+            }
+        }
         if (bRightViable)
             res.Add(new Vector2(x + 1, y));
         if (bDownViable && bRightViable)
-            res.Add(new Vector2(x + 1, y + 1));
+        {
+            var ix = x + 1;
+            var iy = y + 1;
+            var tp = new Vector2(ix, iy);
+            if (IsPosViable(ref tp, mapList, hadCheckNode))
+            {
+                res.Add(new Vector2(ix, iy));
+            }
+        }
         if (bRightViable && bUpViable)
-            res.Add(new Vector2(x + 1, y - 1));
+        {
+            var ix = x + 1;
+            var iy = y - 1;
+            var tp = new Vector2(ix, iy);
+            if (IsPosViable(ref tp, mapList, hadCheckNode))
+            {
+                res.Add(new Vector2(ix, iy));
+            }
+        }
         return res;
+    }
+
+    public static bool IsPosViable(ref Vector2 node, int[,] mapList, List<Vector2> hadCheckNode)
+    {
+        if (!hadCheckNode.Contains(node) && mapList[(int)node.x, (int)node.y] == 0)
+            return true;
+        return false;
     }
 
     /// <summary>
@@ -89,7 +128,8 @@ public class FindingPathCode
     {
         var x = (int)node.x;
         var y = (int)node.y - 1;
-        if (y >= 0 && mapList[x, y] == 0 && !hadCheckNode.Contains(new Vector2(x, y)))
+        var tp = new Vector2(x, y);
+        if (y >= 0 && IsPosViable(ref tp, mapList, hadCheckNode))
             return true;
         return false;
     }
@@ -97,7 +137,8 @@ public class FindingPathCode
     {
         var x = (int)node.x;
         var y = (int)node.y + 1;
-        if (y < row && mapList[x, y] == 0 && !hadCheckNode.Contains(new Vector2(x, y)))
+        var tp = new Vector2(x, y);
+        if (y < row && IsPosViable(ref tp, mapList, hadCheckNode))
         {
             return true;
         }
@@ -107,7 +148,8 @@ public class FindingPathCode
     {
         var x = (int)node.x - 1;
         var y = (int)node.y;
-        if (x >= 0 && mapList[x, y] == 0 && !hadCheckNode.Contains(new Vector2(x, y)))
+        var tp = new Vector2(x, y);
+        if (x >= 0 && IsPosViable(ref tp, mapList, hadCheckNode))
             return true;
         return false;
     }
@@ -115,7 +157,8 @@ public class FindingPathCode
     {
         var x = (int)node.x + 1;
         var y = (int)node.y;
-        if (x < col && mapList[x, y] == 0 && !hadCheckNode.Contains(new Vector2(x, y)))
+        var tp = new Vector2(x, y);
+        if (x < col && IsPosViable(ref tp, mapList, hadCheckNode))
             return true;
         return false;
     }

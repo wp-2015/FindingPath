@@ -1,71 +1,68 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class FindingPathWithViewShow
 {
-    public static int iCol;
-    public static int iRow;
-    public static int[,] lMap;
-    private static void SetMap(int col, int row, int[,] mapList)
-    {
-        iCol = col;
-        iRow = row;
-        lMap = mapList;
-    }
-
-    public static Vector2[] Find()
-    {
-        int col = 4;
-        int row = 4;
-        int[,] map = new int[col, row];
-        for (int i = 0; i < col; i++)
-        {
-            for (int j = 0; j < row; j++)
-            {
-                map[i, j] = 0;
-            }
-        }
-        Find(new Vector2(2, 2), new Vector2(0, 0), col, row, map);
-
-        List<Vector2> res = new List<Vector2>();
-        return res.ToArray();
-    }
-
     static readonly List<Vector2> lHadEnqueued = new List<Vector2>();
-    static readonly Queue<Vector2> queueCheck = new Queue<Vector2>();
-    public static List<Vector2> Find(Vector2 start, Vector2 end, int col, int row, int[,] mapList)
+    static readonly Queue<NodeInfo> queueCheck = new Queue<NodeInfo>();
+    public static List<NodeInfo> lNodeInfo = new List<NodeInfo>();
+    public static void Clear()
     {
-        List<Vector2> res = new List<Vector2>();
-
         lHadEnqueued.Clear();
         queueCheck.Clear();
+        lNodeInfo.Clear();
+    }
+
+    public static void Find(Vector2 start, Vector2 end, int col, int row, int[,] mapList, MonoBehaviour mono, Action<int, int> cbTravel = null, Action<NodeInfo> cbFinish = null)
+    {
+        lHadEnqueued.Clear();
+        queueCheck.Clear();
+        lNodeInfo.Clear();
+        mono.StartCoroutine(Find(start, end, col, row, mapList, cbTravel, cbFinish));
+    }
+
+    static IEnumerator Find(Vector2 start, Vector2 end, int col, int row, int[,] mapList, Action<int, int> cbTravel = null, Action<NodeInfo> cbFinish = null)
+    {
+        var startNode = new NodeInfo() { currentPos = start, parentNode = null };
         if (start == end)
         {
-            res.Add(start); res.Add(end); return res;
+            cbFinish?.Invoke(new NodeInfo() { currentPos = end, parentNode = startNode });
         }
         //尾部压入队列
-        queueCheck.Enqueue(start);
+        queueCheck.Enqueue(startNode);
         lHadEnqueued.Add(start);
+        //lNodeInfo.Add(startNode);
         while (queueCheck.Count > 0)
         {
             var currentNode = queueCheck.Dequeue();
-            Debug.LogError(currentNode);
-            if (currentNode != end)
+            if (currentNode.currentPos != end)
             {
-                var childNodes = FindingNodeChildren(currentNode, col, row, mapList, lHadEnqueued);
+                lNodeInfo.Add(currentNode);
+                cbTravel?.Invoke((int)currentNode.currentPos.x, (int)currentNode.currentPos.y);
+                var childNodes = FindingNodeChildren(currentNode.currentPos, col, row, mapList, lHadEnqueued);
+                
+                childNodes.Sort((x, y) =>
+                {
+                    return (int)Vector2.Distance(x, end) - (int)Vector2.Distance(y, end);
+                });
+
+
                 foreach (var node in childNodes)
                 {
                     lHadEnqueued.Add(node);
-                    queueCheck.Enqueue(node);
+                    var childNode = new NodeInfo() { currentPos = node, parentNode = currentNode };
+                    queueCheck.Enqueue(childNode);
                 }
             }
             else
             {
-                break;
+                cbFinish?.Invoke(currentNode);
+                yield break;
             }
+            yield return new WaitForSeconds(0.5f);
         }
-        return res;
     }
 
     /// <summary>
@@ -92,18 +89,57 @@ public class FindingPathWithViewShow
         if (bLeftViable)
             res.Add(new Vector2(x - 1, y));
         if (bUpViable && bLeftViable)
-            res.Add(new Vector2(x - 1, y - 1));
+        {
+            var ix = x - 1;
+            var iy = y - 1;
+            var tp = new Vector2(ix, iy);
+            if (IsPosViable(ref tp, mapList, hadCheckNode))
+            {
+                res.Add(new Vector2(ix, iy));
+            }
+        }
         if (bDownViable)
             res.Add(new Vector2(x, y + 1));
         if (bLeftViable && bDownViable)
-            res.Add(new Vector2(x - 1, y + 1));
+        {
+            var ix = x - 1;
+            var iy = y + 1;
+            var tp = new Vector2(ix, iy);
+            if (IsPosViable(ref tp, mapList, hadCheckNode))
+            {
+                res.Add(new Vector2(ix, iy));
+            }
+        }
         if (bRightViable)
             res.Add(new Vector2(x + 1, y));
         if (bDownViable && bRightViable)
-            res.Add(new Vector2(x + 1, y + 1));
+        {
+            var ix = x + 1;
+            var iy = y + 1;
+            var tp = new Vector2(ix, iy);
+            if (IsPosViable(ref tp, mapList, hadCheckNode))
+            {
+                res.Add(new Vector2(ix, iy));
+            }
+        }
         if (bRightViable && bUpViable)
-            res.Add(new Vector2(x + 1, y - 1));
+        {
+            var ix = x + 1;
+            var iy = y - 1;
+            var tp = new Vector2(ix, iy);
+            if (IsPosViable(ref tp, mapList, hadCheckNode))
+            {
+                res.Add(new Vector2(ix, iy));
+            }
+        }
         return res;
+    }
+
+    public static bool IsPosViable(ref Vector2 node, int[,] mapList, List<Vector2> hadCheckNode)
+    {
+        if (!hadCheckNode.Contains(node) && mapList[(int)node.x, (int)node.y] == 0)
+            return true;
+        return false;
     }
 
     /// <summary>
@@ -113,7 +149,8 @@ public class FindingPathWithViewShow
     {
         var x = (int)node.x;
         var y = (int)node.y - 1;
-        if (y >= 0 && mapList[x, y] == 0 && !hadCheckNode.Contains(new Vector2(x, y)))
+        var tp = new Vector2(x, y);
+        if (y >= 0 && IsPosViable(ref tp, mapList, hadCheckNode))
             return true;
         return false;
     }
@@ -121,7 +158,8 @@ public class FindingPathWithViewShow
     {
         var x = (int)node.x;
         var y = (int)node.y + 1;
-        if (y < row && mapList[x, y] == 0 && !hadCheckNode.Contains(new Vector2(x, y)))
+        var tp = new Vector2(x, y);
+        if (y < row && IsPosViable(ref tp, mapList, hadCheckNode))
         {
             return true;
         }
@@ -131,7 +169,8 @@ public class FindingPathWithViewShow
     {
         var x = (int)node.x - 1;
         var y = (int)node.y;
-        if (x >= 0 && mapList[x, y] == 0 && !hadCheckNode.Contains(new Vector2(x, y)))
+        var tp = new Vector2(x, y);
+        if (x >= 0 && IsPosViable(ref tp, mapList, hadCheckNode))
             return true;
         return false;
     }
@@ -139,8 +178,15 @@ public class FindingPathWithViewShow
     {
         var x = (int)node.x + 1;
         var y = (int)node.y;
-        if (x < col && mapList[x, y] == 0 && !hadCheckNode.Contains(new Vector2(x, y)))
+        var tp = new Vector2(x, y);
+        if (x < col && IsPosViable(ref tp, mapList, hadCheckNode))
             return true;
         return false;
+    }
+
+    public class NodeInfo
+    {
+        public NodeInfo parentNode;
+        public Vector2 currentPos;
     }
 }

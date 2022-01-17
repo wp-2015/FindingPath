@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using DG.Tweening;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -57,6 +58,7 @@ public class Example : MonoBehaviour
 
         if (GUILayout.Button("创建地图"))
         {
+            FindingPathWithViewShow.Clear();
             iCol = int.Parse(szCol);
             iRow = int.Parse(szRow);
             ShowTile(iCol,iRow);
@@ -77,6 +79,21 @@ public class Example : MonoBehaviour
             clickState = ClickState.Obstacle;
         }
         GUILayout.Space(6);
+        GUILayout.Space(6);
+        if (GUILayout.Button("清理寻路"))
+        {
+            FindingPathWithViewShow.Clear();
+            for (int i = 0; i < iCol; i++)
+            {
+                for (int j = 0; j < iRow; j++)
+                {
+                    var tile = lMap[i, j];
+                    Color c = tile == 0 ? colorNormal : colorObstacle;
+                    SetTileColor(lGOTile[i, j], ref c);
+                }
+            }
+        }
+        GUILayout.Space(6);
         if (GUILayout.Button("寻路"))
         {
             if (null != goStart && null != goEnd)
@@ -87,17 +104,52 @@ public class Example : MonoBehaviour
                 //     iCol, iRow, lMap);
                 var startV = new Vector2(colS, rowS);
                 var endV = new Vector2(colE, rowE);
-                var node = FindingPathCode.Find(startV, endV, iCol, iRow, lMap);
-                for (int i = 0; i < 100; i++)
+                FindingPathWithViewShow.Find(startV, endV, iCol, iRow, lMap, this, TravelItem, (res)=>
                 {
-                    node = node.parentNode;
-                    if(node == null)
-                        return;
-                    SetTileColor((int)node.currentPos.x, (int)node.currentPos.y, ref colorEnd);
-                }
+                    var node = res;
+                    while(null != node)
+                    {
+                        SetTileColor((int)node.currentPos.x, (int)node.currentPos.y, ref colorEnd);
+                        node = node.parentNode;
+                    }
+                });
+                //for (int i = 0; i < 100; i++)
+                //{
+                //    node = node.parentNode;
+                //    if(node == null)
+                //        return;
+                //    SetTileColor((int)node.currentPos.x, (int)node.currentPos.y, ref colorEnd);
+                //}
             }
             
         }
+    }
+
+    private void DrawLine()
+    {
+        var nodes = FindingPathWithViewShow.lNodeInfo;
+        for(int i = 0; i < nodes.Count; i++)
+        {
+            var node = nodes[i];
+            while (node.parentNode != null)
+            {
+                var pos = node.currentPos;
+                var pos1 = node.parentNode.currentPos;
+                var res = new Vector3(pos.x, 0.6f, pos.y);
+                var res1 = new Vector3(pos1.x, 0.6f, pos1.y);
+
+                Debug.DrawLine(res, res1, Color.green);
+                node = node.parentNode;
+            }
+        }
+    }
+
+    private void TravelItem(int x, int y)
+    {
+        var go = lGOTile[x, y];
+        var mat = go.GetComponent<MeshRenderer>().material;
+        mat.color = Color.black;
+        mat.DOBlendableColor(Color.white, 0.5f);
     }
 
     GameObject goStart, goEnd;
@@ -116,6 +168,8 @@ public class Example : MonoBehaviour
                 SetTile(hit.collider.gameObject);
             }
         }
+
+        DrawLine();
     }
 
     private void GetColRowWithGOName(GameObject go, out int col, out int row)
@@ -153,8 +207,18 @@ public class Example : MonoBehaviour
                 {
                     goEnd = null;
                 }
-                SetTileColor(goTile, ref colorObstacle);
-                lMap[col, row] = 1;
+
+                if(lMap[col, row] == 0)
+                {
+                    SetTileColor(goTile, ref colorObstacle);
+                    lMap[col, row] = 1;
+                }
+                else
+                {
+                    SetTileColor(goTile, ref colorNormal);
+                    lMap[col, row] = 0;
+                }
+
                 break;
         }
     }
