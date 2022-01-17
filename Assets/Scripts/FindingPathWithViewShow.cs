@@ -6,19 +6,22 @@ using UnityEngine;
 public class FindingPathWithViewShow
 {
     static readonly List<Vector2> lHadEnqueued = new List<Vector2>();
-    static readonly Queue<NodeInfo> queueCheck = new Queue<NodeInfo>();
+    //static readonly Queue<NodeInfo> queueCheck = new Queue<NodeInfo>();
+    static readonly Stack<NodeInfo> stackCheck = new Stack<NodeInfo>();
     public static List<NodeInfo> lNodeInfo = new List<NodeInfo>();
     public static void Clear()
     {
         lHadEnqueued.Clear();
-        queueCheck.Clear();
+        //queueCheck.Clear();
+        stackCheck.Clear();
         lNodeInfo.Clear();
     }
 
     public static void Find(Vector2 start, Vector2 end, int col, int row, int[,] mapList, MonoBehaviour mono, Action<int, int> cbTravel = null, Action<NodeInfo> cbFinish = null)
     {
         lHadEnqueued.Clear();
-        queueCheck.Clear();
+        //queueCheck.Clear();
+        stackCheck.Clear();
         lNodeInfo.Clear();
         mono.StartCoroutine(Find(start, end, col, row, mapList, cbTravel, cbFinish));
     }
@@ -31,12 +34,14 @@ public class FindingPathWithViewShow
             cbFinish?.Invoke(new NodeInfo() { currentPos = end, parentNode = startNode });
         }
         //尾部压入队列
-        queueCheck.Enqueue(startNode);
+        //queueCheck.Enqueue(startNode);
+        stackCheck.Push(startNode);
         lHadEnqueued.Add(start);
         //lNodeInfo.Add(startNode);
-        while (queueCheck.Count > 0)
+        while (stackCheck.Count > 0)
         {
-            var currentNode = queueCheck.Dequeue();
+            //var currentNode = queueCheck.Dequeue();
+            var currentNode = stackCheck.Pop();
             if (currentNode.currentPos != end)
             {
                 lNodeInfo.Add(currentNode);
@@ -45,15 +50,20 @@ public class FindingPathWithViewShow
                 
                 childNodes.Sort((x, y) =>
                 {
-                    return (int)Vector2.Distance(x, end) - (int)Vector2.Distance(y, end);
+                    var dis = Vector2.Distance(y, end) - Vector2.Distance(x, end);
+                    if (dis > 0)
+                        return 1;
+                    else if (dis < 0)
+                        return -1;
+                    return 0;
                 });
-
 
                 foreach (var node in childNodes)
                 {
                     lHadEnqueued.Add(node);
                     var childNode = new NodeInfo() { currentPos = node, parentNode = currentNode };
-                    queueCheck.Enqueue(childNode);
+                    //queueCheck.Enqueue(childNode);
+                    stackCheck.Push(childNode);
                 }
             }
             else

@@ -4,36 +4,41 @@ using UnityEngine;
 public class FindingPathCode
 {
     static readonly List<Vector2> lHadEnqueued = new List<Vector2>();
-    static readonly Queue<NodeInfo> queueCheck = new Queue<NodeInfo>();
-    private static List<NodeInfo> lNodeInfo = new List<NodeInfo>();
+    static readonly Stack<NodeInfo> stackCheck = new Stack<NodeInfo>();
     public static NodeInfo Find(Vector2 start, Vector2 end, int col, int row, int[,] mapList)
     {
         lHadEnqueued.Clear();
-        queueCheck.Clear();
-        lNodeInfo.Clear();
+        stackCheck.Clear();
         var startNode = new NodeInfo() {currentPos = start, parentNode = null};
         if (start == end)
         {
             return new NodeInfo() {currentPos = end, parentNode = startNode};
         }
-        
-        //尾部压入队列
-        queueCheck.Enqueue(startNode);
+
+        stackCheck.Push(startNode);
         lHadEnqueued.Add(start);
-        lNodeInfo.Add(startNode);
-        while (queueCheck.Count > 0)
+        while (stackCheck.Count > 0)
         {
-            var currentNode = queueCheck.Dequeue();
-            if(currentNode.currentPos != end)
+            var currentNode = stackCheck.Pop();
+            if (currentNode.currentPos != end)
             {
-                lNodeInfo.Remove(currentNode);
                 var childNodes = FindingNodeChildren(currentNode.currentPos, col, row, mapList, lHadEnqueued);
-                foreach(var node in childNodes)
+
+                childNodes.Sort((x, y) =>
+                {
+                    var dis = Vector2.Distance(y, end) - Vector2.Distance(x, end);
+                    if (dis > 0)
+                        return 1;
+                    else if (dis < 0)
+                        return -1;
+                    return 0;
+                });
+
+                foreach (var node in childNodes)
                 {
                     lHadEnqueued.Add(node);
                     var childNode = new NodeInfo() {currentPos = node, parentNode = currentNode};
-                    queueCheck.Enqueue(childNode);
-                    lNodeInfo.Add(childNode);
+                    stackCheck.Push(childNode);
                 }
             }
             else
