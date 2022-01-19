@@ -7,26 +7,55 @@ public class FindingPathWithViewShow
 {
     static readonly List<Vector2> lHadEnqueued = new List<Vector2>();
     //static readonly Queue<NodeInfo> queueCheck = new Queue<NodeInfo>();
-    static readonly Stack<NodeInfo> stackCheck = new Stack<NodeInfo>();
+    //static readonly Stack<NodeInfo> stackCheck = new Stack<NodeInfo>();
+    static readonly List<NodeInfo> lCheck = new List<NodeInfo>();
     public static List<NodeInfo> lNodeInfo = new List<NodeInfo>();
     public static void Clear()
     {
         lHadEnqueued.Clear();
         //queueCheck.Clear();
-        stackCheck.Clear();
+        //stackCheck.Clear();
+        lCheck.Clear();
         lNodeInfo.Clear();
     }
 
-    public static void Find(Vector2 start, Vector2 end, int col, int row, int[,] mapList, MonoBehaviour mono, Action<int, int> cbTravel = null, Action<NodeInfo> cbFinish = null)
+    public static void Find(Vector2 start, Vector2 end, int col, int row, int[,] mapList, MonoBehaviour mono, Action<NodeInfo> cbFinish, Action<int, int> cbTravel = null)
     {
         lHadEnqueued.Clear();
         //queueCheck.Clear();
-        stackCheck.Clear();
+        //stackCheck.Clear();
+        lCheck.Clear();
         lNodeInfo.Clear();
-        mono.StartCoroutine(Find(start, end, col, row, mapList, cbTravel, cbFinish));
+        mono.StartCoroutine(Find(start, end, col, row, mapList, cbFinish, cbTravel));
     }
 
-    static IEnumerator Find(Vector2 start, Vector2 end, int col, int row, int[,] mapList, Action<int, int> cbTravel = null, Action<NodeInfo> cbFinish = null)
+    private static float GetF(NodeInfo node, ref Vector2 start, ref Vector2 end)
+    {
+        var currentPos = node.currentPos;
+        var sD = Vector2.Distance(start, currentPos);
+        var eD = Vector2.Distance(end, currentPos);
+        return sD + eD;
+    }
+    private static NodeInfo PopTheLowestF(ref Vector2 start, ref Vector2 end)
+    {
+        if (lCheck.Count < 1)
+            return null;
+
+        float lowestDis = GetF(lCheck[0], ref start, ref end);
+        NodeInfo res = lCheck[0];
+        for (int i = 1; i < lCheck.Count; i++)
+        {
+            var f = GetF(lCheck[i], ref start, ref end);
+            if(f < lowestDis)
+            {
+                res = lCheck[i];
+                lowestDis = f;
+            }
+        }
+        return res;
+    }
+
+    static IEnumerator Find(Vector2 start, Vector2 end, int col, int row, int[,] mapList, Action<NodeInfo> cbFinish, Action<int, int> cbTravel = null)
     {
         var startNode = new NodeInfo() { currentPos = start, parentNode = null };
         if (start == end)
@@ -35,13 +64,16 @@ public class FindingPathWithViewShow
         }
         //尾部压入队列
         //queueCheck.Enqueue(startNode);
-        stackCheck.Push(startNode);
+        //stackCheck.Push(startNode);
+        lCheck.Add(startNode);
+        lNodeInfo.Add(startNode);
         lHadEnqueued.Add(start);
         //lNodeInfo.Add(startNode);
-        while (stackCheck.Count > 0)
+        while (lCheck.Count > 0)
         {
             //var currentNode = queueCheck.Dequeue();
-            var currentNode = stackCheck.Pop();
+            var currentNode = PopTheLowestF(ref start, ref end);
+            lCheck.Remove(currentNode);
             if (currentNode.currentPos != end)
             {
                 lNodeInfo.Add(currentNode);
@@ -63,7 +95,8 @@ public class FindingPathWithViewShow
                     lHadEnqueued.Add(node);
                     var childNode = new NodeInfo() { currentPos = node, parentNode = currentNode };
                     //queueCheck.Enqueue(childNode);
-                    stackCheck.Push(childNode);
+                    //stackCheck.Push(childNode);
+                    lCheck.Add(childNode);
                 }
             }
             else
@@ -71,8 +104,10 @@ public class FindingPathWithViewShow
                 cbFinish?.Invoke(currentNode);
                 yield break;
             }
-            yield return new WaitForSeconds(0.5f);
+            if(cbTravel != null)
+                yield return new WaitForSeconds(0.5f);
         }
+        yield return null;
     }
 
     /// <summary>

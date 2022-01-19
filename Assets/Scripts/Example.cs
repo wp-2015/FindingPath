@@ -104,15 +104,15 @@ public class Example : MonoBehaviour
                 //     iCol, iRow, lMap);
                 var startV = new Vector2(colS, rowS);
                 var endV = new Vector2(colE, rowE);
-                FindingPathWithViewShow.Find(startV, endV, iCol, iRow, lMap, this, TravelItem, (res)=>
+                FindingPathWithViewShow.Find(startV, endV, iCol, iRow, lMap, this, (res) =>
                 {
                     var node = res;
-                    while(null != node)
+                    while (null != node)
                     {
                         SetTileColor((int)node.currentPos.x, (int)node.currentPos.y, ref colorEnd);
                         node = node.parentNode;
                     }
-                });
+                }, TravelItem);
                 //for (int i = 0; i < 100; i++)
                 //{
                 //    node = node.parentNode;
