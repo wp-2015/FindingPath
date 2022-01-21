@@ -42,7 +42,7 @@ public class Example : MonoBehaviour
     Color colorNormal = Color.white;
     Color colorObstacle = Color.gray;
 
-    string szCol = "10", szRow = "10";
+    string szCol = "4", szRow = "6";
     private int iCol, iRow;
 
     private void OnGUI()
