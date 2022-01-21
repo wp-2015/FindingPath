@@ -6,16 +6,16 @@ using UnityEngine;
 public class FindingPathWithViewShow
 {
     static readonly List<Vector2> lHadEnqueued = new List<Vector2>();
-    static readonly Stack<NodeInfo> stackCheck = new Stack<NodeInfo>();
-    //static readonly List<NodeInfo> lCheck = new List<NodeInfo>();
-
+    //static readonly Queue<NodeInfo> queueCheck = new Queue<NodeInfo>();
+    //static readonly Stack<NodeInfo> stackCheck = new Stack<NodeInfo>();
+    static readonly List<NodeInfo> lCheck = new List<NodeInfo>();
     public static List<NodeInfo> lNodeInfo = new List<NodeInfo>();
     public static void Clear()
     {
         lHadEnqueued.Clear();
         //queueCheck.Clear();
-        stackCheck.Clear();
-        //lCheck.Clear();
+        //stackCheck.Clear();
+        lCheck.Clear();
         lNodeInfo.Clear();
     }
 
@@ -23,8 +23,8 @@ public class FindingPathWithViewShow
     {
         lHadEnqueued.Clear();
         //queueCheck.Clear();
-        stackCheck.Clear();
-        //lCheck.Clear();
+        //stackCheck.Clear();
+        lCheck.Clear();
         lNodeInfo.Clear();
         mono.StartCoroutine(Find(start, end, col, row, mapList, cbFinish, cbTravel));
     }
@@ -36,24 +36,24 @@ public class FindingPathWithViewShow
         var eD = Vector2.Distance(end, currentPos);
         return sD + eD;
     }
-    //private static NodeInfo PopTheLowestF(ref Vector2 start, ref Vector2 end)
-    //{
-    //    if (stackCheck.Count < 1)
-    //        return null;
+    private static NodeInfo PopTheLowestF(ref Vector2 start, ref Vector2 end)
+    {
+        if (lCheck.Count < 1)
+            return null;
 
-    //    float lowestDis = GetF(lCheck[0], ref start, ref end);
-    //    NodeInfo res = lCheck[0];
-    //    for (int i = 1; i < lCheck.Count; i++)
-    //    {
-    //        var f = GetF(lCheck[i], ref start, ref end);
-    //        if(f < lowestDis)
-    //        {
-    //            res = lCheck[i];
-    //            lowestDis = f;
-    //        }
-    //    }
-    //    return res;
-    //}
+        float lowestDis = GetF(lCheck[0], ref start, ref end);
+        NodeInfo res = lCheck[0];
+        for (int i = 1; i < lCheck.Count; i++)
+        {
+            var f = GetF(lCheck[i], ref start, ref end);
+            if(f < lowestDis)
+            {
+                res = lCheck[i];
+                lowestDis = f;
+            }
+        }
+        return res;
+    }
 
     static IEnumerator Find(Vector2 start, Vector2 end, int col, int row, int[,] mapList, Action<NodeInfo> cbFinish, Action<int, int> cbTravel = null)
     {
@@ -64,21 +64,22 @@ public class FindingPathWithViewShow
         }
         //尾部压入队列
         //queueCheck.Enqueue(startNode);
-        stackCheck.Push(startNode);
-        //lCheck.Add(startNode);
+        //stackCheck.Push(startNode);
+        lCheck.Add(startNode);
         lNodeInfo.Add(startNode);
         lHadEnqueued.Add(start);
         //lNodeInfo.Add(startNode);
-        while (stackCheck.Count > 0)
+        while (lCheck.Count > 0)
         {
             //var currentNode = queueCheck.Dequeue();
-            var currentNode = stackCheck.Pop();
+            var currentNode = PopTheLowestF(ref start, ref end);
+            lCheck.Remove(currentNode);
             if (currentNode.currentPos != end)
             {
                 lNodeInfo.Add(currentNode);
                 cbTravel?.Invoke((int)currentNode.currentPos.x, (int)currentNode.currentPos.y);
                 var childNodes = FindingNodeChildren(currentNode.currentPos, col, row, mapList, lHadEnqueued);
-
+                
                 childNodes.Sort((x, y) =>
                 {
                     var dis = Vector2.Distance(y, end) - Vector2.Distance(x, end);
@@ -94,8 +95,8 @@ public class FindingPathWithViewShow
                     lHadEnqueued.Add(node);
                     var childNode = new NodeInfo() { currentPos = node, parentNode = currentNode };
                     //queueCheck.Enqueue(childNode);
-                    stackCheck.Push(childNode);
-                    //lCheck.Add(childNode);
+                    //stackCheck.Push(childNode);
+                    lCheck.Add(childNode);
                 }
             }
             else
