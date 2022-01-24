@@ -29,24 +29,16 @@ public class FindingPathWithViewShow
         mono.StartCoroutine(Find(start, end, col, row, mapList, cbFinish, cbTravel));
     }
 
-
-    private static float GetF(NodeInfo node, ref Vector2 start, ref Vector2 end)
-    {
-        var currentPos = node.currentPos;
-        var sD = Vector2.Distance(start, currentPos);
-        var eD = Vector2.Distance(end, currentPos);
-        return sD + eD;
-    }
     private static NodeInfo PopTheLowestF(ref Vector2 start, ref Vector2 end)
     {
         if (lCheck.Count < 1)
             return null;
 
-        float lowestDis = GetF(lCheck[0], ref start, ref end);
+        float lowestDis = lCheck[0].iDis;
         NodeInfo res = lCheck[0];
         for (int i = 1; i < lCheck.Count; i++)
         {
-            var f = GetF(lCheck[i], ref start, ref end);
+            var f = lCheck[i].iDis;
             if(f < lowestDis)
             {
                 res = lCheck[i];
@@ -54,6 +46,11 @@ public class FindingPathWithViewShow
             }
         }
         return res;
+    }
+
+    private static int GetDis(ref Vector2 a, ref Vector2 b)
+    {
+        return Math.Abs((int)a.x - (int)b.x) + Math.Abs((int)a.y - (int)b.y);
     }
 
     static IEnumerator Find(Vector2 start, Vector2 end, int col, int row, int[,] mapList, Action<NodeInfo> cbFinish, Action<int, int> cbTravel = null)
@@ -80,21 +77,26 @@ public class FindingPathWithViewShow
                 lNodeInfo.Add(currentNode);
                 cbTravel?.Invoke((int)currentNode.currentPos.x, (int)currentNode.currentPos.y);
                 var childNodes = FindingNodeChildren(currentNode.currentPos, col, row, mapList, lHadEnqueued);
-                
-                //childNodes.Sort((x, y) =>
-                //{
-                //    var dis = Vector2.Distance(y, end) - Vector2.Distance(x, end);
-                //    if (dis > 0)
-                //        return 1;
-                //    else if (dis < 0)
-                //        return -1;
-                //    return 0;
-                //});
 
-                foreach (var node in childNodes)
+                childNodes.Sort((x, y) =>
                 {
+                    var xDis = GetDis(ref end, ref x);
+                    var yDis = GetDis(ref end, ref y);
+
+                    var dis = xDis - yDis;//Vector2.Distance(y, end) - Vector2.Distance(x, end);
+                    if (dis > 0)
+                        return 1;
+                    else if (dis < 0)
+                        return -1;
+                    return 0;
+                });
+
+                for(int i = 0; i < childNodes.Count; i++)
+                {
+                    var node = childNodes[i];
                     lHadEnqueued.Add(node);
-                    var childNode = new NodeInfo() { currentPos = node, parentNode = currentNode };
+                    var dis = GetDis(ref start, ref node) + GetDis(ref end, ref node);
+                    var childNode = new NodeInfo() { currentPos = node, parentNode = currentNode, iDis = dis };
                     //queueCheck.Enqueue(childNode);
                     //stackCheck.Push(childNode);
                     lCheck.Add(childNode);
@@ -124,56 +126,56 @@ public class FindingPathWithViewShow
     {
         var x = (int)node.x;
         var y = (int)node.y;
-        bool bUpViable = IsUpViable(node, mapList, hadCheckNode);
-        bool bDownViable = IsDownViable(node, row, mapList, hadCheckNode);
-        bool bLeftViable = IsLeftViable(node, mapList, hadCheckNode);
-        bool bRightViable = IsRightViable(node, col, mapList, hadCheckNode);
+        var bUpViable = IsUpViable(node, mapList, hadCheckNode);
+        var bDownViable = IsDownViable(node, row, mapList, hadCheckNode);
+        var bLeftViable = IsLeftViable(node, mapList, hadCheckNode);
+        var bRightViable = IsRightViable(node, col, mapList, hadCheckNode);
 
         List<Vector2> res = new List<Vector2>();
-        if (bUpViable)
+        if (bUpViable == ViableType.Viable)
             res.Add(new Vector2(x, y - 1));
-        if (bLeftViable)
+        if (bLeftViable == ViableType.Viable)
             res.Add(new Vector2(x - 1, y));
-        if (bUpViable && bLeftViable)
+        if (bUpViable >= ViableType.HadChecked && bLeftViable >= ViableType.HadChecked)
         {
             var ix = x - 1;
             var iy = y - 1;
             var tp = new Vector2(ix, iy);
-            if (IsPosViable(ref tp, mapList, hadCheckNode))
+            if (IsPosViable(ref tp, mapList, hadCheckNode) == ViableType.Viable)
             {
                 res.Add(new Vector2(ix, iy));
             }
         }
-        if (bDownViable)
+        if (bDownViable == ViableType.Viable)
             res.Add(new Vector2(x, y + 1));
-        if (bLeftViable && bDownViable)
+        if (bLeftViable >= ViableType.HadChecked && bDownViable >= ViableType.HadChecked)
         {
             var ix = x - 1;
             var iy = y + 1;
             var tp = new Vector2(ix, iy);
-            if (IsPosViable(ref tp, mapList, hadCheckNode))
+            if (IsPosViable(ref tp, mapList, hadCheckNode) == ViableType.Viable)
             {
                 res.Add(new Vector2(ix, iy));
             }
         }
-        if (bRightViable)
+        if (bRightViable == ViableType.Viable)
             res.Add(new Vector2(x + 1, y));
-        if (bDownViable && bRightViable)
+        if (bDownViable >= ViableType.HadChecked && bRightViable >= ViableType.HadChecked)
         {
             var ix = x + 1;
             var iy = y + 1;
             var tp = new Vector2(ix, iy);
-            if (IsPosViable(ref tp, mapList, hadCheckNode))
+            if (IsPosViable(ref tp, mapList, hadCheckNode) == ViableType.Viable)
             {
                 res.Add(new Vector2(ix, iy));
             }
         }
-        if (bRightViable && bUpViable)
+        if (bRightViable >= ViableType.HadChecked && bUpViable >= ViableType.HadChecked)
         {
             var ix = x + 1;
             var iy = y - 1;
             var tp = new Vector2(ix, iy);
-            if (IsPosViable(ref tp, mapList, hadCheckNode))
+            if (IsPosViable(ref tp, mapList, hadCheckNode) == ViableType.Viable)
             {
                 res.Add(new Vector2(ix, iy));
             }
@@ -181,58 +183,65 @@ public class FindingPathWithViewShow
         return res;
     }
 
-    public static bool IsPosViable(ref Vector2 node, int[,] mapList, List<Vector2> hadCheckNode)
+    public static ViableType IsPosViable(ref Vector2 node, int[,] mapList, List<Vector2> hadCheckNode)
     {
-        if (!hadCheckNode.Contains(node) && mapList[(int)node.x, (int)node.y] == 0)
-            return true;
-        return false;
+        if (mapList[(int)node.x, (int)node.y] != 0)
+            return ViableType.CannotMove;
+        if (hadCheckNode.Contains(node))
+            return ViableType.HadChecked;
+
+        return ViableType.Viable;
     }
 
+    public enum ViableType { OutRange, CannotMove, HadChecked, Viable };
     /// <summary>
     /// 上部的节点是否可行
     /// </summary>
-    private static bool IsUpViable(Vector2 node, int[,] mapList, List<Vector2> hadCheckNode)
+    private static ViableType IsUpViable(Vector2 node, int[,] mapList, List<Vector2> hadCheckNode)
     {
         var x = (int)node.x;
         var y = (int)node.y - 1;
         var tp = new Vector2(x, y);
-        if (y >= 0 && IsPosViable(ref tp, mapList, hadCheckNode))
-            return true;
-        return false;
+        if (y < 0)
+            return ViableType.OutRange;
+
+        return IsPosViable(ref tp, mapList, hadCheckNode);
     }
-    private static bool IsDownViable(Vector2 node, int row, int[,] mapList, List<Vector2> hadCheckNode)
+    private static ViableType IsDownViable(Vector2 node, int row, int[,] mapList, List<Vector2> hadCheckNode)
     {
         var x = (int)node.x;
         var y = (int)node.y + 1;
         var tp = new Vector2(x, y);
-        if (y < row && IsPosViable(ref tp, mapList, hadCheckNode))
-        {
-            return true;
-        }
-        return false;
+        if(y >= row)
+            return ViableType.OutRange;
+
+        return IsPosViable(ref tp, mapList, hadCheckNode);
     }
-    private static bool IsLeftViable(Vector2 node, int[,] mapList, List<Vector2> hadCheckNode)
+    private static ViableType IsLeftViable(Vector2 node, int[,] mapList, List<Vector2> hadCheckNode)
     {
         var x = (int)node.x - 1;
         var y = (int)node.y;
         var tp = new Vector2(x, y);
-        if (x >= 0 && IsPosViable(ref tp, mapList, hadCheckNode))
-            return true;
-        return false;
+        if(x < 0)
+            return ViableType.OutRange;
+
+        return IsPosViable(ref tp, mapList, hadCheckNode);
     }
-    private static bool IsRightViable(Vector2 node, int col, int[,] mapList, List<Vector2> hadCheckNode)
+    private static ViableType IsRightViable(Vector2 node, int col, int[,] mapList, List<Vector2> hadCheckNode)
     {
         var x = (int)node.x + 1;
         var y = (int)node.y;
         var tp = new Vector2(x, y);
-        if (x < col && IsPosViable(ref tp, mapList, hadCheckNode))
-            return true;
-        return false;
+        if(x >= col)
+            return ViableType.OutRange;
+
+        return IsPosViable(ref tp, mapList, hadCheckNode);
     }
 
     public class NodeInfo
     {
         public NodeInfo parentNode;
         public Vector2 currentPos;
+        public int iDis;
     }
 }
