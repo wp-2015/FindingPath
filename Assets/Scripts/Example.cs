@@ -1,6 +1,7 @@
 ﻿using DG.Tweening;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 
 public class Example : MonoBehaviour
@@ -42,7 +43,7 @@ public class Example : MonoBehaviour
     Color colorNormal = Color.white;
     Color colorObstacle = Color.gray;
 
-    string szCol = "10", szRow = "10";
+    string szCol = "6", szRow = "4";
     private int iCol, iRow;
 
     private void OnGUI()
@@ -144,12 +145,17 @@ public class Example : MonoBehaviour
         }
     }
 
+    int iTravelIndex = 1;
     private void TravelItem(int x, int y)
     {
         var go = lGOTile[x, y];
         var mat = go.GetComponent<MeshRenderer>().material;
         mat.color = Color.black;
         mat.DOBlendableColor(Color.white, 0.5f);
+        var text = go.GetComponentInChildren<TextMeshPro>(true);
+        text.gameObject.SetActive(true);
+        text.text = iTravelIndex.ToString();
+        iTravelIndex++;
     }
 
     GameObject goStart, goEnd;

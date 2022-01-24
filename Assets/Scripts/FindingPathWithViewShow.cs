@@ -29,6 +29,7 @@ public class FindingPathWithViewShow
         mono.StartCoroutine(Find(start, end, col, row, mapList, cbFinish, cbTravel));
     }
 
+
     private static float GetF(NodeInfo node, ref Vector2 start, ref Vector2 end)
     {
         var currentPos = node.currentPos;
@@ -80,15 +81,15 @@ public class FindingPathWithViewShow
                 cbTravel?.Invoke((int)currentNode.currentPos.x, (int)currentNode.currentPos.y);
                 var childNodes = FindingNodeChildren(currentNode.currentPos, col, row, mapList, lHadEnqueued);
                 
-                childNodes.Sort((x, y) =>
-                {
-                    var dis = Vector2.Distance(y, end) - Vector2.Distance(x, end);
-                    if (dis > 0)
-                        return 1;
-                    else if (dis < 0)
-                        return -1;
-                    return 0;
-                });
+                //childNodes.Sort((x, y) =>
+                //{
+                //    var dis = Vector2.Distance(y, end) - Vector2.Distance(x, end);
+                //    if (dis > 0)
+                //        return 1;
+                //    else if (dis < 0)
+                //        return -1;
+                //    return 0;
+                //});
 
                 foreach (var node in childNodes)
                 {
